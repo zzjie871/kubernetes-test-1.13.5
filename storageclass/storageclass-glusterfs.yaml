@@ -1,0 +1,13 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: gluster-heketi
+provisioner: kubernetes.io/glusterfs
+parameters:
+  resturl: "http://gfs01:8080"
+  restauthenabled: "false"
+  restuser: "will"
+  restuserkey: "will"
+  gidMin: "40000"
+  gidMax: "50000"
+  volumetype: "replicate:3"
