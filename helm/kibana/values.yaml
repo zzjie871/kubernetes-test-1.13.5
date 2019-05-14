@@ -119,13 +119,13 @@ extraVolumeMounts: []
 
 extraVolumes: []
 
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 300Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 300Mi
+resources: 
+  limits:
+    cpu: 1000m
+    memory: 1536Mi
+  requests:
+    cpu: 1000m
+    memory: 1536Mi
 
 priorityClassName: ""
 

@@ -20,8 +20,8 @@ resources: {}
 elasticsearch:
   host: 'els1-elasticsearch-client.efk.svc.cluster.local'
   port: 9200
-  buffer_chunk_limit: 2M
-  buffer_queue_limit: 8
+  buffer_chunk_limit: 256M
+  buffer_queue_limit: 32
   #scheme: 'http'
   #ssl_version: "SSLv23"
 

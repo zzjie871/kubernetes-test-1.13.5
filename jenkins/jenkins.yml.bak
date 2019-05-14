@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-jenkins-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  nfs:
+    path: /data/nfs/jenkins_home
+    server: storage01
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-jenkins-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
+  annotations:
+spec:
+  type: NodePort
+  selector:
+    app: jenkins
+  ports:
+    - name: web
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+      nodePort: 30001
+    - name: agent
+      port: 50000
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins
+spec:
+  serviceName: jenkins
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      terminationGracePeriodSeconds: 10
+      serviceAccountName: jenkins
+      imagePullSecrets:
+        - name: registry-pull-secret 
+      containers:
+      - name: jenkins
+        image: jenkins/jenkins:lts
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8080
+            name: web
+            protocol: TCP
+          - containerPort: 50000
+            name: agent
+            protocol: TCP
+        resources:
+          limits:
+            cpu: 2
+            memory: 4Gi
+          requests:
+            cpu: 0.5
+            memory: 500Mi
+        volumeMounts:
+          - name: jenkins-home
+            mountPath: /var/jenkins_home
+        env:
+          - name: LIMITS_MEMORY
+            valueFrom:
+              resourceFieldRef:
+                resource: limits.memory
+                divisor: 1Mi
+          - name: JAVA_OPTS
+            value: -Xmx$(LIMITS_MEMORY)m -XshowSettings:vm -Dhudson.slaves.NodeProvisioner.initialDelay=0 -Dhudson.slaves.NodeProvisioner.MARGIN=50 -Dhudson.slaves.NodeProvisioner.MARGIN0=0.85 -Duser.timezone=Asia/Shanghai
+        livenessProbe:
+          httpGet:
+            port: 8080
+            path: /login
+          initialDelaySeconds: 60
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            port: 8080
+            path: /login
+          initialDelaySeconds: 60
+          timeoutSeconds: 5
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: nfs-jenkins-pvc
